@@ -38,22 +38,27 @@ if uploaded_file is None:
     st.info("👆 Upload a CSV or Excel file to begin")
     st.stop()
 
+# 🔴 CRITICAL STREAMLIT FIX
+uploaded_file.seek(0)
+
 # --------------------------------------------------
-# SAFE FILE READING (FINAL FIX)
+# Safe File Reading (FINAL)
 # --------------------------------------------------
 try:
     file_name = uploaded_file.name.lower()
 
     if file_name.endswith(".csv"):
         df_raw = pd.read_csv(uploaded_file)
+
     elif file_name.endswith(".xlsx"):
-        df_raw = pd.read_excel(uploaded_file)
+        df_raw = pd.read_excel(uploaded_file, engine="openpyxl")
+
     else:
         st.error("❌ Unsupported file format.")
         st.stop()
 
 except Exception as e:
-    st.error("❌ Failed to read file. The uploaded file may be corrupted or not a valid CSV/XLSX.")
+    st.error("❌ Failed to read file.")
     st.code(str(e))
     st.stop()
 
@@ -70,7 +75,7 @@ c3.metric("Missing Values", int(df_raw.isnull().sum().sum()))
 st.divider()
 
 # --------------------------------------------------
-# Data Profiling
+# Profiling
 # --------------------------------------------------
 tab1, tab2, tab3 = st.tabs(
     ["📄 Raw Data", "🔍 Missing Values", "🧬 Duplicates"]
@@ -97,14 +102,9 @@ st.subheader("🧹 Cleaning Options")
 
 col1, col2, col3 = st.columns(3)
 
-with col1:
-    remove_duplicates = st.checkbox("Remove duplicate rows", value=True)
-
-with col2:
-    clean_text = st.checkbox("Clean text columns", value=True)
-
-with col3:
-    handle_missing = st.checkbox("Handle missing values", value=True)
+remove_duplicates = col1.checkbox("Remove duplicate rows", value=True)
+clean_text = col2.checkbox("Clean text columns", value=True)
+handle_missing = col3.checkbox("Handle missing values", value=True)
 
 # --------------------------------------------------
 # Run Cleaning
@@ -112,18 +112,15 @@ with col3:
 if st.button("✨ Run Cleaning Pipeline"):
     df_cleaned = df_raw.copy()
 
-    # Standardize column names
     df_cleaned.columns = (
         df_cleaned.columns.str.lower()
         .str.strip()
         .str.replace(" ", "_")
     )
 
-    # Remove duplicates
     if remove_duplicates:
         df_cleaned = df_cleaned.drop_duplicates()
 
-    # Clean text columns
     if clean_text:
         for col in df_cleaned.select_dtypes(include="object").columns:
             df_cleaned[col] = (
@@ -134,19 +131,12 @@ if st.button("✨ Run Cleaning Pipeline"):
                 .str.replace(r"[^a-z0-9\s]", "", regex=True)
             )
 
-    # Handle missing values
     if handle_missing:
         df_cleaned = df_cleaned.fillna("unknown")
 
     st.success("✅ Data cleaned successfully!")
 
-    # --------------------------------------------------
-    # Before vs After
-    # --------------------------------------------------
-    st.subheader("🔄 Before vs After")
-
     b1, b2 = st.columns(2)
-
     with b1:
         st.write("❌ Before Cleaning")
         st.dataframe(df_raw.head())
@@ -155,22 +145,10 @@ if st.button("✨ Run Cleaning Pipeline"):
         st.write("✅ After Cleaning")
         st.dataframe(df_cleaned.head())
 
-    # --------------------------------------------------
-    # Cleaning Summary
-    # --------------------------------------------------
-    st.subheader("📈 Cleaning Summary")
-
-    s1, s2, s3 = st.columns(3)
-    s1.metric("Rows Before", df_raw.shape[0])
-    s2.metric("Rows After", df_cleaned.shape[0])
-    s3.metric("Rows Removed", df_raw.shape[0] - df_cleaned.shape[0])
-
-    # --------------------------------------------------
-    # Download
-    # --------------------------------------------------
     st.divider()
+
     st.download_button(
-        label="⬇️ Download Cleaned Data (CSV)",
+        "⬇️ Download Cleaned Data (CSV)",
         data=df_cleaned.to_csv(index=False),
         file_name="cleaned_customer_data.csv",
         mime="text/csv"
