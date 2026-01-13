@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import re
+from io import BytesIO
 
 # --------------------------------------------------
 # Page Config
@@ -39,20 +40,19 @@ if uploaded_file is None:
     st.stop()
 
 # --------------------------------------------------
-# Safe File Reading (PATCHED)
+# ✅ SAFE FILE READING (FINAL FIX)
 # --------------------------------------------------
-from io import BytesIO
-
 try:
-    if uploaded_file.name.endswith(".csv"):
+    uploaded_file.seek(0)  # 🔑 reset pointer
+
+    if uploaded_file.name.lower().endswith(".csv"):
         df_raw = pd.read_csv(uploaded_file)
     else:
-        bytes_data = uploaded_file.getvalue()
-        df_raw = pd.read_excel(BytesIO(bytes_data), engine="openpyxl")
+        df_raw = pd.read_excel(BytesIO(uploaded_file.read()))
+
 except Exception as e:
     st.error("❌ Failed to read file. Please upload a valid CSV or Excel (.xlsx) file.")
     st.stop()
-
 
 # --------------------------------------------------
 # Dataset Overview
@@ -74,16 +74,16 @@ tab1, tab2, tab3 = st.tabs(
 )
 
 with tab1:
-    st.dataframe(df_raw.head(10), use_container_width=True)
+    st.dataframe(df_raw.head(10))
 
 with tab2:
     missing_df = df_raw.isnull().sum().reset_index()
     missing_df.columns = ["Column", "Missing Count"]
-    st.dataframe(missing_df, use_container_width=True)
+    st.dataframe(missing_df)
 
 with tab3:
-    dup_count = int(df_raw.duplicated().sum())
-    st.write(f"🔁 Total duplicate rows: **{dup_count}**")
+    dup_count = df_raw.duplicated().sum()
+    st.write(f"Total duplicate rows: **{dup_count}**")
 
 st.divider()
 
@@ -104,16 +104,14 @@ with col3:
     handle_missing = st.checkbox("Handle missing values", value=True)
 
 # --------------------------------------------------
-# Run Cleaning Pipeline
+# Run Cleaning
 # --------------------------------------------------
 if st.button("✨ Run Cleaning Pipeline"):
     df_cleaned = df_raw.copy()
 
     # Standardize column names
     df_cleaned.columns = (
-        df_cleaned.columns
-        .astype(str)
-        .str.lower()
+        df_cleaned.columns.str.lower()
         .str.strip()
         .str.replace(" ", "_")
     )
@@ -148,11 +146,11 @@ if st.button("✨ Run Cleaning Pipeline"):
 
     with b1:
         st.write("❌ Before Cleaning")
-        st.dataframe(df_raw.head(), use_container_width=True)
+        st.dataframe(df_raw.head())
 
     with b2:
         st.write("✅ After Cleaning")
-        st.dataframe(df_cleaned.head(), use_container_width=True)
+        st.dataframe(df_cleaned.head())
 
     # --------------------------------------------------
     # Cleaning Summary
@@ -165,7 +163,7 @@ if st.button("✨ Run Cleaning Pipeline"):
     s3.metric("Rows Removed", df_raw.shape[0] - df_cleaned.shape[0])
 
     # --------------------------------------------------
-    # Download Cleaned Data
+    # Download
     # --------------------------------------------------
     st.divider()
     st.download_button(
