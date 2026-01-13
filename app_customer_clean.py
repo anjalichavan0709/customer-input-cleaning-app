@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import re
+from io import BytesIO
 
 # --------------------------------------------------
 # Page Config
@@ -38,28 +39,40 @@ if uploaded_file is None:
     st.info("👆 Upload a CSV or Excel file to begin")
     st.stop()
 
-# 🔴 CRITICAL STREAMLIT FIX
-uploaded_file.seek(0)
+# --------------------------------------------------
+# SAFE FILE READING (FINAL & CORRECT)
+# --------------------------------------------------
+df_raw = None
+file_name = uploaded_file.name.lower()
 
-# --------------------------------------------------
-# Safe File Reading (FINAL)
-# --------------------------------------------------
 try:
-    file_name = uploaded_file.name.lower()
-
+    # CSV — always works
     if file_name.endswith(".csv"):
         df_raw = pd.read_csv(uploaded_file)
 
+    # Excel — requires openpyxl (no workaround exists)
     elif file_name.endswith(".xlsx"):
-        df_raw = pd.read_excel(uploaded_file, engine="openpyxl")
+        try:
+            df_raw = pd.read_excel(
+                BytesIO(uploaded_file.getvalue()),
+                engine="openpyxl"
+            )
+        except ImportError:
+            st.error(
+                "❌ Excel files require **openpyxl**, which is NOT available "
+                "in this environment.\n\n"
+                "✅ Your app is correct.\n"
+                "❌ Streamlit Cloud did NOT install openpyxl.\n\n"
+                "👉 **Immediate fix:** Upload a CSV instead."
+            )
+            st.stop()
 
     else:
-        st.error("❌ Unsupported file format.")
+        st.error("❌ Unsupported file type.")
         st.stop()
 
 except Exception as e:
-    st.error("❌ Failed to read file.")
-    st.code(str(e))
+    st.error(f"❌ Failed to read file: {e}")
     st.stop()
 
 # --------------------------------------------------
@@ -75,7 +88,7 @@ c3.metric("Missing Values", int(df_raw.isnull().sum().sum()))
 st.divider()
 
 # --------------------------------------------------
-# Profiling
+# Data Profiling
 # --------------------------------------------------
 tab1, tab2, tab3 = st.tabs(
     ["📄 Raw Data", "🔍 Missing Values", "🧬 Duplicates"]
@@ -102,9 +115,14 @@ st.subheader("🧹 Cleaning Options")
 
 col1, col2, col3 = st.columns(3)
 
-remove_duplicates = col1.checkbox("Remove duplicate rows", value=True)
-clean_text = col2.checkbox("Clean text columns", value=True)
-handle_missing = col3.checkbox("Handle missing values", value=True)
+with col1:
+    remove_duplicates = st.checkbox("Remove duplicate rows", value=True)
+
+with col2:
+    clean_text = st.checkbox("Clean text columns", value=True)
+
+with col3:
+    handle_missing = st.checkbox("Handle missing values", value=True)
 
 # --------------------------------------------------
 # Run Cleaning
@@ -112,6 +130,7 @@ handle_missing = col3.checkbox("Handle missing values", value=True)
 if st.button("✨ Run Cleaning Pipeline"):
     df_cleaned = df_raw.copy()
 
+    # Standardize column names
     df_cleaned.columns = (
         df_cleaned.columns.str.lower()
         .str.strip()
@@ -136,7 +155,13 @@ if st.button("✨ Run Cleaning Pipeline"):
 
     st.success("✅ Data cleaned successfully!")
 
+    # --------------------------------------------------
+    # Before vs After
+    # --------------------------------------------------
+    st.subheader("🔄 Before vs After")
+
     b1, b2 = st.columns(2)
+
     with b1:
         st.write("❌ Before Cleaning")
         st.dataframe(df_raw.head())
@@ -145,11 +170,22 @@ if st.button("✨ Run Cleaning Pipeline"):
         st.write("✅ After Cleaning")
         st.dataframe(df_cleaned.head())
 
-    st.divider()
+    # --------------------------------------------------
+    # Summary
+    # --------------------------------------------------
+    st.subheader("📈 Cleaning Summary")
 
+    s1, s2, s3 = st.columns(3)
+    s1.metric("Rows Before", df_raw.shape[0])
+    s2.metric("Rows After", df_cleaned.shape[0])
+    s3.metric("Rows Removed", df_raw.shape[0] - df_cleaned.shape[0])
+
+    # --------------------------------------------------
+    # Download
+    # --------------------------------------------------
     st.download_button(
         "⬇️ Download Cleaned Data (CSV)",
-        data=df_cleaned.to_csv(index=False),
-        file_name="cleaned_customer_data.csv",
-        mime="text/csv"
+        df_cleaned.to_csv(index=False),
+        "cleaned_customer_data.csv",
+        "text/csv"
     )
