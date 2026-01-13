@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import re
-from io import BytesIO
 
 # --------------------------------------------------
 # Page Config
@@ -40,21 +39,22 @@ if uploaded_file is None:
     st.stop()
 
 # --------------------------------------------------
-# SAFE FILE READING (FINAL, CLOUD-SAFE)
+# SAFE FILE READING (FINAL FIX)
 # --------------------------------------------------
 try:
-    uploaded_file.seek(0)
+    file_name = uploaded_file.name.lower()
 
-    if uploaded_file.name.lower().endswith(".csv"):
+    if file_name.endswith(".csv"):
         df_raw = pd.read_csv(uploaded_file)
-    elif uploaded_file.name.lower().endswith(".xlsx"):
-        df_raw = pd.read_excel(BytesIO(uploaded_file.read()))
+    elif file_name.endswith(".xlsx"):
+        df_raw = pd.read_excel(uploaded_file)
     else:
-        st.error("❌ Unsupported file type.")
+        st.error("❌ Unsupported file format.")
         st.stop()
 
 except Exception as e:
-    st.error("❌ Failed to read file. Please upload a valid CSV or Excel (.xlsx) file.")
+    st.error("❌ Failed to read file. The uploaded file may be corrupted or not a valid CSV/XLSX.")
+    st.code(str(e))
     st.stop()
 
 # --------------------------------------------------
