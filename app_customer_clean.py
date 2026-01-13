@@ -40,17 +40,15 @@ if uploaded_file is None:
     st.stop()
 
 # --------------------------------------------------
-# SAFE FILE READING (FINAL & CORRECT)
+# Safe File Reading (FINAL)
 # --------------------------------------------------
 df_raw = None
 file_name = uploaded_file.name.lower()
 
 try:
-    # CSV — always works
     if file_name.endswith(".csv"):
         df_raw = pd.read_csv(uploaded_file)
 
-    # Excel — requires openpyxl (no workaround exists)
     elif file_name.endswith(".xlsx"):
         try:
             df_raw = pd.read_excel(
@@ -59,11 +57,9 @@ try:
             )
         except ImportError:
             st.error(
-                "❌ Excel files require **openpyxl**, which is NOT available "
-                "in this environment.\n\n"
-                "✅ Your app is correct.\n"
-                "❌ Streamlit Cloud did NOT install openpyxl.\n\n"
-                "👉 **Immediate fix:** Upload a CSV instead."
+                "❌ Excel support requires **openpyxl**, which is not available "
+                "in this Streamlit environment.\n\n"
+                "✅ **Solution:** Upload a CSV file instead."
             )
             st.stop()
 
@@ -72,7 +68,7 @@ try:
         st.stop()
 
 except Exception as e:
-    st.error(f"❌ Failed to read file: {e}")
+    st.error("❌ Failed to read file. Please upload a valid CSV or Excel file.")
     st.stop()
 
 # --------------------------------------------------
@@ -155,9 +151,7 @@ if st.button("✨ Run Cleaning Pipeline"):
 
     st.success("✅ Data cleaned successfully!")
 
-    # --------------------------------------------------
     # Before vs After
-    # --------------------------------------------------
     st.subheader("🔄 Before vs After")
 
     b1, b2 = st.columns(2)
@@ -170,9 +164,7 @@ if st.button("✨ Run Cleaning Pipeline"):
         st.write("✅ After Cleaning")
         st.dataframe(df_cleaned.head())
 
-    # --------------------------------------------------
     # Summary
-    # --------------------------------------------------
     st.subheader("📈 Cleaning Summary")
 
     s1, s2, s3 = st.columns(3)
@@ -180,12 +172,11 @@ if st.button("✨ Run Cleaning Pipeline"):
     s2.metric("Rows After", df_cleaned.shape[0])
     s3.metric("Rows Removed", df_raw.shape[0] - df_cleaned.shape[0])
 
-    # --------------------------------------------------
-    # Download
-    # --------------------------------------------------
+    st.divider()
+
     st.download_button(
-        "⬇️ Download Cleaned Data (CSV)",
-        df_cleaned.to_csv(index=False),
-        "cleaned_customer_data.csv",
-        "text/csv"
+        label="⬇️ Download Cleaned Data (CSV)",
+        data=df_cleaned.to_csv(index=False),
+        file_name="cleaned_customer_data.csv",
+        mime="text/csv"
     )
