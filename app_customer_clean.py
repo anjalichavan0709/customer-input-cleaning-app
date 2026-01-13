@@ -41,14 +41,18 @@ if uploaded_file is None:
 # --------------------------------------------------
 # Safe File Reading (PATCHED)
 # --------------------------------------------------
+from io import BytesIO
+
 try:
     if uploaded_file.name.endswith(".csv"):
         df_raw = pd.read_csv(uploaded_file)
     else:
-        df_raw = pd.read_excel(uploaded_file, engine="openpyxl")
+        bytes_data = uploaded_file.getvalue()
+        df_raw = pd.read_excel(BytesIO(bytes_data), engine="openpyxl")
 except Exception as e:
     st.error("❌ Failed to read file. Please upload a valid CSV or Excel (.xlsx) file.")
     st.stop()
+
 
 # --------------------------------------------------
 # Dataset Overview
