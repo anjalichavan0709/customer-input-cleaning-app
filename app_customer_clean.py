@@ -27,7 +27,7 @@ st.markdown(
 st.divider()
 
 # --------------------------------------------------
-# File Upload (CSV + Excel)
+# File Upload
 # --------------------------------------------------
 uploaded_file = st.file_uploader(
     "📤 Upload customer data file (CSV or Excel)",
@@ -39,48 +39,52 @@ if uploaded_file is None:
     st.stop()
 
 # --------------------------------------------------
-# Read File
+# Safe File Reading (PATCHED)
 # --------------------------------------------------
-if uploaded_file.name.endswith(".csv"):
-    df_raw = pd.read_csv(uploaded_file)
-else:
-    df_raw = pd.read_excel(uploaded_file)
+try:
+    if uploaded_file.name.endswith(".csv"):
+        df_raw = pd.read_csv(uploaded_file)
+    else:
+        df_raw = pd.read_excel(uploaded_file, engine="openpyxl")
+except Exception as e:
+    st.error("❌ Failed to read file. Please upload a valid CSV or Excel (.xlsx) file.")
+    st.stop()
 
 # --------------------------------------------------
-# Dataset Overview (Feature 1)
+# Dataset Overview
 # --------------------------------------------------
 st.subheader("📊 Dataset Overview")
 
 c1, c2, c3 = st.columns(3)
 c1.metric("Total Rows", df_raw.shape[0])
 c2.metric("Total Columns", df_raw.shape[1])
-c3.metric("Missing Values", df_raw.isnull().sum().sum())
+c3.metric("Missing Values", int(df_raw.isnull().sum().sum()))
 
 st.divider()
 
 # --------------------------------------------------
-# Data Profiling (Feature 2)
+# Data Profiling
 # --------------------------------------------------
 tab1, tab2, tab3 = st.tabs(
     ["📄 Raw Data", "🔍 Missing Values", "🧬 Duplicates"]
 )
 
 with tab1:
-    st.dataframe(df_raw.head(10))
+    st.dataframe(df_raw.head(10), use_container_width=True)
 
 with tab2:
     missing_df = df_raw.isnull().sum().reset_index()
     missing_df.columns = ["Column", "Missing Count"]
-    st.dataframe(missing_df)
+    st.dataframe(missing_df, use_container_width=True)
 
 with tab3:
-    dup_count = df_raw.duplicated().sum()
-    st.write(f"Total duplicate rows: **{dup_count}**")
+    dup_count = int(df_raw.duplicated().sum())
+    st.write(f"🔁 Total duplicate rows: **{dup_count}**")
 
 st.divider()
 
 # --------------------------------------------------
-# Cleaning Options (Feature 3)
+# Cleaning Options
 # --------------------------------------------------
 st.subheader("🧹 Cleaning Options")
 
@@ -96,14 +100,16 @@ with col3:
     handle_missing = st.checkbox("Handle missing values", value=True)
 
 # --------------------------------------------------
-# Run Cleaning
+# Run Cleaning Pipeline
 # --------------------------------------------------
 if st.button("✨ Run Cleaning Pipeline"):
     df_cleaned = df_raw.copy()
 
     # Standardize column names
     df_cleaned.columns = (
-        df_cleaned.columns.str.lower()
+        df_cleaned.columns
+        .astype(str)
+        .str.lower()
         .str.strip()
         .str.replace(" ", "_")
     )
@@ -130,7 +136,7 @@ if st.button("✨ Run Cleaning Pipeline"):
     st.success("✅ Data cleaned successfully!")
 
     # --------------------------------------------------
-    # Before vs After (Feature 4)
+    # Before vs After
     # --------------------------------------------------
     st.subheader("🔄 Before vs After")
 
@@ -138,14 +144,14 @@ if st.button("✨ Run Cleaning Pipeline"):
 
     with b1:
         st.write("❌ Before Cleaning")
-        st.dataframe(df_raw.head())
+        st.dataframe(df_raw.head(), use_container_width=True)
 
     with b2:
         st.write("✅ After Cleaning")
-        st.dataframe(df_cleaned.head())
+        st.dataframe(df_cleaned.head(), use_container_width=True)
 
     # --------------------------------------------------
-    # Cleaning Summary (Feature 5)
+    # Cleaning Summary
     # --------------------------------------------------
     st.subheader("📈 Cleaning Summary")
 
