@@ -40,15 +40,18 @@ if uploaded_file is None:
     st.stop()
 
 # --------------------------------------------------
-# ✅ SAFE FILE READING (FINAL FIX)
+# SAFE FILE READING (FINAL, CLOUD-SAFE)
 # --------------------------------------------------
 try:
-    uploaded_file.seek(0)  # 🔑 reset pointer
+    uploaded_file.seek(0)
 
     if uploaded_file.name.lower().endswith(".csv"):
         df_raw = pd.read_csv(uploaded_file)
-    else:
+    elif uploaded_file.name.lower().endswith(".xlsx"):
         df_raw = pd.read_excel(BytesIO(uploaded_file.read()))
+    else:
+        st.error("❌ Unsupported file type.")
+        st.stop()
 
 except Exception as e:
     st.error("❌ Failed to read file. Please upload a valid CSV or Excel (.xlsx) file.")
@@ -128,7 +131,7 @@ if st.button("✨ Run Cleaning Pipeline"):
                 .astype(str)
                 .str.lower()
                 .str.strip()
-                .str.replace(r"[^a-zA-Z0-9\s]", "", regex=True)
+                .str.replace(r"[^a-z0-9\s]", "", regex=True)
             )
 
     # Handle missing values
