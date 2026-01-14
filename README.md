@@ -1,49 +1,37 @@
-# 🧹 Customer Input Data Cleaning Pipeline
+# 🧹 Customer Input Data Cleaning App
 
-An interactive Streamlit application designed to clean messy customer datasets efficiently using a configurable and transparent data cleaning pipeline.
+An interactive **Streamlit web application** designed to clean messy customer text data using a configurable and transparent data-cleaning pipeline.
+
+---
+
+## 📌 App Overview
+
+Customer-generated text data such as social media comments or feedback is often noisy, inconsistent, and unstructured.  
+This application provides a simple interface to inspect, clean, and export such data, making it ready for analytics or NLP workflows.
 
 ---
 
 ## 🚀 Features
 
-- Upload customer data in **CSV or Excel** format  
-- Dataset overview including rows, columns, and missing values  
-- Missing value analysis by column  
-- Duplicate record detection  
-- Interactive cleaning options:
-  - Remove duplicate rows  
-  - Clean text columns  
-  - Handle missing values  
-- Before and after data comparison  
-- Download cleaned dataset as a CSV file  
+- 📤 Upload customer data in **CSV format**
+- 📊 Dataset overview:
+  - total rows
+  - total columns
+  - missing values
+- 🔍 Data profiling:
+  - raw data preview
+  - missing value summary
+  - duplicate detection
+- 🧹 Interactive cleaning options:
+  - remove duplicate rows
+  - clean text columns (lowercase, remove special characters)
+  - handle missing values
+- 🔄 Before vs After comparison
+- ⬇️ Download cleaned dataset as CSV
 
 ---
 
-## 🔄 Data Cleaning Pipeline Explanation
-
-The application follows a structured data cleaning pipeline:
-
-1. The user uploads a CSV or Excel file containing customer data  
-2. The application displays basic dataset statistics and profiling information  
-3. Missing values and duplicate records are identified and shown  
-4. The user selects the required cleaning operations through the interface  
-5. The selected cleaning steps are applied sequentially to the dataset  
-6. A cleaned dataset is generated and made available for download  
-
-This approach ensures clarity, user control, and transparency throughout the data cleaning process.
-
----
-
-## 🛠️ Tech Stack
-
-- Python  
-- Streamlit  
-- Pandas  
-- NumPy  
-
----
-
-## 📂 Project Structure
+## 🗂️ App Structure
 
 customer_input_cleaning_app/
 │
@@ -53,19 +41,54 @@ customer_input_cleaning_app/
 
 ---
 
-## ▶️ How to Run the Application Locally
+## 📄 Accepted Input Format
 
-1. Navigate to the project folder  
-2. Install the required dependencies:
-pip install -r requirements.txt
+### CSV only (intentional design decision)
 
-3. Run the Streamlit application:
-streamlit run app_customer_clean.py
+The application accepts **CSV files** as input.
 
+Although the original dataset was available in Excel (.xlsx) format, CSV was chosen for the Streamlit application to ensure:
+
+- stable deployment on Streamlit Cloud  
+- no dependency on optional Excel libraries (`openpyxl`)  
+- faster and more reliable file ingestion  
+- alignment with industry-standard production pipelines  
+
+The raw Excel file was converted to CSV **without any modification to the data**.
 
 ---
 
-## 📌 Use Case
+## 🧠 Technical Note
 
-This application is useful for data analysts, data science students, and beginners who need to clean raw customer input data before analysis or machine learning tasks.
+The Streamlit application focuses exclusively on **data cleaning and processing**.  
+File format conversion (Excel → CSV) was intentionally handled outside the app to avoid deployment instability and maintain data integrity.
+
+This separation reflects real-world best practices between experimentation and production systems.
+
+---
+
+## 📦 Dependencies
+
+The application requires the following libraries:
+streamlit
+pandas
+numpy
+
+---
+
+## ✅ Output
+
+- Cleaned customer dataset
+- Downloadable in CSV format
+- Ready for analytics or NLP workflows
+
+---
+
+## 🎯 Summary
+
+This application demonstrates:
+- practical data-cleaning workflows
+- clear separation between raw data handling and processing
+- deployment-aware engineering decisions
+- clean and modular Streamlit UI design
 
