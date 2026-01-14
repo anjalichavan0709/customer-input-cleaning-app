@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import re
-from io import BytesIO
 
 # --------------------------------------------------
 # Page Config
@@ -28,47 +26,24 @@ st.markdown(
 st.divider()
 
 # --------------------------------------------------
-# File Upload
+# File Upload (CSV ONLY – Cloud Safe)
 # --------------------------------------------------
 uploaded_file = st.file_uploader(
-    "📤 Upload customer data file (CSV or Excel)",
-    type=["csv", "xlsx"]
+    "📤 Upload customer data file (CSV)",
+    type=["csv"]
 )
 
 if uploaded_file is None:
-    st.info("👆 Upload a CSV or Excel file to begin")
+    st.info("👆 Upload a CSV file to begin")
     st.stop()
 
 # --------------------------------------------------
-# Safe File Reading (FINAL)
+# Read CSV Safely
 # --------------------------------------------------
-df_raw = None
-file_name = uploaded_file.name.lower()
-
 try:
-    if file_name.endswith(".csv"):
-        df_raw = pd.read_csv(uploaded_file)
-
-    elif file_name.endswith(".xlsx"):
-        try:
-            df_raw = pd.read_excel(
-                BytesIO(uploaded_file.getvalue()),
-                engine="openpyxl"
-            )
-        except ImportError:
-            st.error(
-                "❌ Excel support requires **openpyxl**, which is not available "
-                "in this Streamlit environment.\n\n"
-                "✅ **Solution:** Upload a CSV file instead."
-            )
-            st.stop()
-
-    else:
-        st.error("❌ Unsupported file type.")
-        st.stop()
-
+    df_raw = pd.read_csv(uploaded_file)
 except Exception as e:
-    st.error("❌ Failed to read file. Please upload a valid CSV or Excel file.")
+    st.error("❌ Failed to read CSV file.")
     st.stop()
 
 # --------------------------------------------------
@@ -121,7 +96,7 @@ with col3:
     handle_missing = st.checkbox("Handle missing values", value=True)
 
 # --------------------------------------------------
-# Run Cleaning
+# Run Cleaning Pipeline
 # --------------------------------------------------
 if st.button("✨ Run Cleaning Pipeline"):
     df_cleaned = df_raw.copy()
@@ -133,9 +108,11 @@ if st.button("✨ Run Cleaning Pipeline"):
         .str.replace(" ", "_")
     )
 
+    # Remove duplicates
     if remove_duplicates:
         df_cleaned = df_cleaned.drop_duplicates()
 
+    # Clean text columns
     if clean_text:
         for col in df_cleaned.select_dtypes(include="object").columns:
             df_cleaned[col] = (
@@ -146,12 +123,15 @@ if st.button("✨ Run Cleaning Pipeline"):
                 .str.replace(r"[^a-z0-9\s]", "", regex=True)
             )
 
+    # Handle missing values
     if handle_missing:
         df_cleaned = df_cleaned.fillna("unknown")
 
     st.success("✅ Data cleaned successfully!")
 
+    # --------------------------------------------------
     # Before vs After
+    # --------------------------------------------------
     st.subheader("🔄 Before vs After")
 
     b1, b2 = st.columns(2)
@@ -164,7 +144,9 @@ if st.button("✨ Run Cleaning Pipeline"):
         st.write("✅ After Cleaning")
         st.dataframe(df_cleaned.head())
 
-    # Summary
+    # --------------------------------------------------
+    # Cleaning Summary
+    # --------------------------------------------------
     st.subheader("📈 Cleaning Summary")
 
     s1, s2, s3 = st.columns(3)
@@ -172,8 +154,10 @@ if st.button("✨ Run Cleaning Pipeline"):
     s2.metric("Rows After", df_cleaned.shape[0])
     s3.metric("Rows Removed", df_raw.shape[0] - df_cleaned.shape[0])
 
+    # --------------------------------------------------
+    # Download Cleaned Data
+    # --------------------------------------------------
     st.divider()
-
     st.download_button(
         label="⬇️ Download Cleaned Data (CSV)",
         data=df_cleaned.to_csv(index=False),
